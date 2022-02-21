@@ -1,0 +1,42 @@
+version: '3'
+services:
+    django:
+      container_name: django_server
+      build: 
+        context: esummit22
+      environment:
+        - DJANGO_SETTINGS_MODULE=ipl_auction.settings
+      expose:
+        - "443"
+      volumes:
+        - static_volume:/app/staticfiles/
+        - ./esummit22:/app
+        - ./nginx/config/certs:/app/certs
+
+      command: bash -c "cd /app && python manage.py migrate && daphne -e ssl:443:privateKey=certs/private-key.key:certKey=certs/certificate.crt ipl_auction.asgi:application"
+      depends_on:
+        - db
+    db:
+      image: postgres:alpine
+      volumes:
+        - ./postgres_data:/var/lib/postgresql/data/
+      ports:
+        - "5432:5432"
+      environment:
+        - POSTGRES_DB=ipl_auction
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=Mihir1703#  
+    nginx:
+      image: nginx:latest
+      container_name: ng
+      ports:
+        - "443:443"
+        - "80:80"
+      volumes:
+        - ./nginx/config/:/etc/nginx/conf.d
+        - static_volume:/app/staticfiles/
+      depends_on:
+        - django
+        - db
+volumes:
+  static_volume:
